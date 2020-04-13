@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/place1/wg-access-server/internal/storage"
+	"github.com/place1/wg-access-server/pkg/authnz/authsession"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +26,8 @@ func New(iface string, s storage.Storage, cidr string) *DeviceManager {
 	return &DeviceManager{iface, s, cidr}
 }
 
-func (d *DeviceManager) Sync() error {
+func (d *DeviceManager) StartSync(disableMetadataCollection bool) error {
+	// sync devices from storage once
 	devices, err := d.ListDevices("")
 	if err != nil {
 		return errors.Wrap(err, "failed to list devices")
@@ -35,10 +37,16 @@ func (d *DeviceManager) Sync() error {
 			logrus.Warn(errors.Wrapf(err, "failed to sync device '%s' (ignoring)", device.Name))
 		}
 	}
+
+	// start the metrics loop
+	if !disableMetadataCollection {
+		go metadataLoop(d)
+	}
+
 	return nil
 }
 
-func (d *DeviceManager) AddDevice(user string, name string, publicKey string) (*storage.Device, error) {
+func (d *DeviceManager) AddDevice(identity *authsession.Identity, name string, publicKey string) (*storage.Device, error) {
 	if name == "" {
 		return nil, errors.New("device name must not be empty")
 	}
@@ -49,14 +57,17 @@ func (d *DeviceManager) AddDevice(user string, name string, publicKey string) (*
 	}
 
 	device := &storage.Device{
-		Owner:     user,
-		Name:      name,
-		PublicKey: publicKey,
-		Address:   clientAddr,
-		CreatedAt: time.Now(),
+		Owner:         identity.Subject,
+		OwnerName:     identity.Name,
+		OwnerEmail:    identity.Email,
+		OwnerProvider: identity.Provider,
+		Name:          name,
+		PublicKey:     publicKey,
+		Address:       clientAddr,
+		CreatedAt:     time.Now(),
 	}
 
-	if err := d.storage.Save(key(user, device.Name), device); err != nil {
+	if err := d.SaveDevice(device); err != nil {
 		return nil, errors.Wrap(err, "failed to save the new device")
 	}
 
@@ -65,6 +76,14 @@ func (d *DeviceManager) AddDevice(user string, name string, publicKey string) (*
 	}
 
 	return device, nil
+}
+
+func (d *DeviceManager) SaveDevice(device *storage.Device) error {
+	return d.storage.Save(key(device.Owner, device.Name), device)
+}
+
+func (d *DeviceManager) ListAllDevices() ([]*storage.Device, error) {
+	return d.storage.List("")
 }
 
 func (d *DeviceManager) ListDevices(user string) ([]*storage.Device, error) {

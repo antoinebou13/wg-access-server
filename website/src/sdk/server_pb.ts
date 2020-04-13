@@ -108,6 +108,10 @@ export declare namespace InfoRes {
 		host?: googleProtobufWrappers.StringValue.AsObject,
 		port: number,
 		hostVpnIp: string,
+		metadataEnabled: boolean,
+		isAdmin: boolean,
+		allowedIps: string,
+		dnsEnabled: boolean,
 	}
 }
 
@@ -155,6 +159,38 @@ export class InfoRes extends jspb.Message {
 		(jspb.Message as any).setProto3StringField(this, 4, value);
 	}
 
+	getMetadataEnabled(): boolean {
+		return jspb.Message.getFieldWithDefault(this, 5, false);
+	}
+
+	setMetadataEnabled(value: boolean): void {
+		(jspb.Message as any).setProto3BooleanField(this, 5, value);
+	}
+
+	getIsAdmin(): boolean {
+		return jspb.Message.getFieldWithDefault(this, 6, false);
+	}
+
+	setIsAdmin(value: boolean): void {
+		(jspb.Message as any).setProto3BooleanField(this, 6, value);
+	}
+
+	getAllowedIps(): string {
+		return jspb.Message.getFieldWithDefault(this, 7, "");
+	}
+
+	setAllowedIps(value: string): void {
+		(jspb.Message as any).setProto3StringField(this, 7, value);
+	}
+
+	getDnsEnabled(): boolean {
+		return jspb.Message.getFieldWithDefault(this, 8, false);
+	}
+
+	setDnsEnabled(value: boolean): void {
+		(jspb.Message as any).setProto3BooleanField(this, 8, value);
+	}
+
 	serializeBinary(): Uint8Array {
 		const writer = new jspb.BinaryWriter();
 		InfoRes.serializeBinaryToWriter(this, writer);
@@ -167,6 +203,10 @@ export class InfoRes extends jspb.Message {
 			host: (f = this.getHost()) && f.toObject(),
 			port: this.getPort(),
 			hostVpnIp: this.getHostVpnIp(),
+			metadataEnabled: this.getMetadataEnabled(),
+			isAdmin: this.getIsAdmin(),
+			allowedIps: this.getAllowedIps(),
+			dnsEnabled: this.getDnsEnabled(),
 			
 		};
 	}
@@ -187,6 +227,22 @@ export class InfoRes extends jspb.Message {
 		const field4 = message.getHostVpnIp();
 		if (field4.length > 0) {
 			writer.writeString(4, field4);
+		}
+		const field5 = message.getMetadataEnabled();
+		if (field5 != false) {
+			writer.writeBool(5, field5);
+		}
+		const field6 = message.getIsAdmin();
+		if (field6 != false) {
+			writer.writeBool(6, field6);
+		}
+		const field7 = message.getAllowedIps();
+		if (field7.length > 0) {
+			writer.writeString(7, field7);
+		}
+		const field8 = message.getDnsEnabled();
+		if (field8 != false) {
+			writer.writeBool(8, field8);
 		}
 	}
 
@@ -220,6 +276,22 @@ export class InfoRes extends jspb.Message {
 				const field4 = reader.readString()
 				message.setHostVpnIp(field4);
 				break;
+			case 5:
+				const field5 = reader.readBool()
+				message.setMetadataEnabled(field5);
+				break;
+			case 6:
+				const field6 = reader.readBool()
+				message.setIsAdmin(field6);
+				break;
+			case 7:
+				const field7 = reader.readString()
+				message.setAllowedIps(field7);
+				break;
+			case 8:
+				const field8 = reader.readBool()
+				message.setDnsEnabled(field8);
+				break;
 			default:
 				reader.skipField();
 				break;
@@ -248,6 +320,10 @@ function InfoResFromObject(obj: InfoRes.AsObject | undefined): InfoRes | undefin
 	message.setHost(StringValueFromObject(obj.host));
 	message.setPort(obj.port);
 	message.setHostVpnIp(obj.hostVpnIp);
+	message.setMetadataEnabled(obj.metadataEnabled);
+	message.setIsAdmin(obj.isAdmin);
+	message.setAllowedIps(obj.allowedIps);
+	message.setDnsEnabled(obj.dnsEnabled);
 	return message;
 }
 

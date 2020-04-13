@@ -2,9 +2,12 @@ package services
 
 import (
 	"context"
+	"strings"
 
-	"github.com/place1/wg-access-server/internal/auth/authsession"
+	"github.com/place1/wg-access-server/internal/network"
+
 	"github.com/place1/wg-access-server/internal/config"
+	"github.com/place1/wg-access-server/pkg/authnz/authsession"
 	"github.com/place1/wg-access-server/proto/proto"
 	"github.com/place1/wg-embed/pkg/wgembed"
 	"github.com/sirupsen/logrus"
@@ -17,7 +20,8 @@ type ServerService struct {
 }
 
 func (s *ServerService) Info(ctx context.Context, req *proto.InfoReq) (*proto.InfoRes, error) {
-	if _, err := authsession.CurrentUser(ctx); err != nil {
+	user, err := authsession.CurrentUser(ctx)
+	if err != nil {
 		return nil, status.Errorf(codes.PermissionDenied, "not authenticated")
 	}
 
@@ -28,9 +32,37 @@ func (s *ServerService) Info(ctx context.Context, req *proto.InfoReq) (*proto.In
 	}
 
 	return &proto.InfoRes{
-		Host:      stringValue(s.Config.WireGuard.ExternalHost),
-		PublicKey: publicKey,
-		Port:      int32(s.Config.WireGuard.Port),
-		HostVpnIp: ServerVPNIP(s.Config.VPN.CIDR).IP.String(),
+		Host:            stringValue(s.Config.WireGuard.ExternalHost),
+		PublicKey:       publicKey,
+		Port:            int32(s.Config.WireGuard.Port),
+		HostVpnIp:       network.ServerVPNIP(s.Config.VPN.CIDR).IP.String(),
+		MetadataEnabled: !s.Config.DisableMetadata,
+		IsAdmin:         user.Claims.Contains("admin"),
+		AllowedIps:      allowedIPs(s.Config),
+		DnsEnabled:      *s.Config.DNS.Enabled,
 	}, nil
+}
+
+func allowedIPs(config *config.AppConfig) string {
+	if config.VPN.Rules == nil {
+		return "0.0.0.0/1, 128.0.0.0/1, ::/0"
+	}
+
+	allowed := []string{}
+
+	if config.VPN.Rules.AllowVPNLAN {
+		allowed = append(allowed, config.VPN.CIDR)
+	}
+
+	if config.VPN.Rules.AllowServerLAN {
+		allowed = append(allowed, network.ServerLANSubnets...)
+	}
+
+	if config.VPN.Rules.AllowInternet {
+		allowed = append(allowed, network.PublicInternetSubnets...)
+	}
+
+	allowed = append(allowed, config.VPN.Rules.AllowedNetworks...)
+
+	return strings.Join(allowed, ", ")
 }

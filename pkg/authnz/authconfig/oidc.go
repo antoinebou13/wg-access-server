@@ -1,18 +1,18 @@
 package authconfig
 
 import (
-	"strings"
 	"context"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"github.com/place1/wg-access-server/internal/auth/authruntime"
-	"github.com/place1/wg-access-server/internal/auth/authsession"
-	"github.com/place1/wg-access-server/internal/auth/authutil"
+	"github.com/place1/wg-access-server/pkg/authnz/authruntime"
+	"github.com/place1/wg-access-server/pkg/authnz/authsession"
+	"github.com/place1/wg-access-server/pkg/authnz/authutil"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
@@ -102,9 +102,17 @@ func (c *OIDCConfig) callbackHandler(runtime *authruntime.ProviderRuntime, oauth
 			return
 		}
 
+		var claims struct {
+			Name string `json:"name"`
+		}
+		info.Claims(&claims)
+
 		runtime.SetSession(w, r, &authsession.AuthSession{
 			Identity: &authsession.Identity{
-				Subject: info.Subject,
+				Provider: c.Name,
+				Subject:  info.Subject,
+				Email:    info.Email,
+				Name:     claims.Name,
 			},
 		})
 

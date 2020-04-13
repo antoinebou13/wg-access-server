@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/place1/wg-access-server/internal/auth/authruntime"
-	"github.com/place1/wg-access-server/internal/auth/authsession"
+	"github.com/place1/wg-access-server/pkg/authnz/authruntime"
+	"github.com/place1/wg-access-server/pkg/authnz/authsession"
 	"github.com/tg123/go-htpasswd"
 )
 
@@ -40,12 +40,19 @@ func basicAuthLogin(c *BasicAuthConfig, runtime *authruntime.ProviderRuntime) ht
 		if ok := checkCreds(c.Users, u, p); ok {
 			runtime.SetSession(w, r, &authsession.AuthSession{
 				Identity: &authsession.Identity{
-					Subject: u,
+					Provider: "basic",
+					Subject:  u,
+					Name:     u,
+					Email:    "", // basic auth has no email
 				},
 			})
+			runtime.Done(w, r)
 		}
 
-		runtime.Done(w, r)
+		w.Header().Set("WWW-Authenticate", `Basic realm="site"`)
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintln(w, "unauthorized")
+		return
 	}
 }
 
